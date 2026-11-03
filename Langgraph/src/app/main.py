@@ -15,12 +15,21 @@ class State(TypedDict):
 def classify_question_node(state: State):
     question = state["question"].lower()
 
-    if any(word in question for word in ["java", "python", "sql", "c++"]):
+    if any(word in question for word in ["java", "python", "c++"]):
         category = "technical"
+    elif any(word in question for word in ["sql", "database"]):
+        category = "database"
     else:
         category = "general"
 
     return {"category": category, "logs": [f"Classified as {category}"]}
+
+
+def database_answer_node(state: State):
+    return {
+        "answer": f"Database question recieved, Question : {state['question']}",
+        "logs": ["Database route executed"],
+    }
 
 
 def technical_answer_node(state: State):
@@ -46,19 +55,20 @@ builder = StateGraph(State)
 builder.add_node("classify", classify_question_node)
 builder.add_node("technical_n", technical_answer_node)
 builder.add_node("general_n", general_answer_node)
-
+builder.add_node("database_n", database_answer_node)
 
 builder.add_edge(START, "classify")
 builder.add_conditional_edges(
     "classify",
     route_question_node,
-    {"technical": "technical_n", "general": "general_n"},
+    {"technical": "technical_n", "general": "general_n", "database": "database_n"},
 )
 builder.add_edge("technical_n", END)
 builder.add_edge("general_n", END)
+builder.add_edge("database_n", END)
 
 graph = builder.compile()
 
 
-response = graph.invoke({"question": "Whats a API?", "logs": []})
+response = graph.invoke({"question": "Whats a SQL", "logs": []})
 print(response)
