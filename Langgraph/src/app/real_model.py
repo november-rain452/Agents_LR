@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 from typing import Annotated
 from typing_extensions import TypedDict
 import operator
+from pydantic import BaseModel, Field
 
 load_dotenv()
 
@@ -17,3 +18,13 @@ class AgentState(TypedDict):
     feedback: str
     quality_ok: bool
     logs: Annotated[list[str], operator.add]
+
+
+class Evaluation(BaseModel):
+    quality_ok: bool = Field(
+        description="Whether the answer adequately answers the question."
+    )
+    feedback: str = Field(description="Specific improvements needed, or why it passed")
+
+
+evaluator = llm.with_structured_output(Evaluation)
