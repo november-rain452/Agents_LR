@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field
 
 load_dotenv()
 
-llm = ChatGoogleGenerativeAI(model="gemini-3.5-flash-lite", temperature=0.2)
+llm = ChatGoogleGenerativeAI(model="gemini-3.5-flash-lite")
 
 
 class AgentState(TypedDict):
@@ -35,8 +35,8 @@ def generate_or_improve(state: AgentState):
 
     if attempts == 1:
         prompt = f"""Answer the following questions clearly and concisely.
-        Question : {state['question']}
-        Provide details so that the answer is useful."""
+            Question : {state['question']}
+            Provide details so that the answer is useful."""
     else:
         prompt = f"""Improve the answer based on the evaluator's feedback. 
         Original Question : {state['question']}
@@ -96,3 +96,31 @@ def decide_next_step(state: AgentState):
         return "finish"
 
     return "retry"
+
+
+# build graph
+
+builder = StateGraph(AgentState)
+
+builder.add_node("gen_improve", generate_or_improve)
+builder.add_node("evaluate", evaluate_answer)
+
+builder.add_edge(START, "gen_improve")
+builder.add_edge("gen_improve", "evaluate")
+builder.add_conditional_edges(
+    "evaluate", decide_next_step, {"finish": END, "retry": "gen_improve"}
+)
+
+graph = builder.compile()
+
+result = graph.invoke(
+    {
+        "question": "What is RAG in Gen AI or Agents?",
+        "answer": "",
+        "attempts": 0,
+        "feedback": "",
+        "quality_ok": False,
+        "logs": [],
+    }
+)
+print(result)
