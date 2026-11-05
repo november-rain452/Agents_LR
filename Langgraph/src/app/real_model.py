@@ -28,3 +28,58 @@ class Evaluation(BaseModel):
 
 
 evaluator = llm.with_structured_output(Evaluation)
+
+
+def generate_or_improve(state: AgentState):
+    attempts = state["attempts"] + 1
+
+    if attempts == 1:
+        prompt = f"""Answer the following questions clearly and concisely.
+        Question : {state['question']}
+        Provide details so that the answer is useful."""
+    else:
+        prompt = f"""Improve the answer based on the evaluator's feedback. 
+        Original Question : {state['question']}
+        
+        Previous Answer : {state['answer']}
+
+        Feedback : {state['feedback']}
+        
+        Write a revised answer that addresses the feedback
+        and answers the original question accurately."""
+
+    response = llm.invoke(prompt)
+
+    return {
+        "answer": response.content,
+        "attempts": attempts,
+        "logs": [f"Generated answer for attempt : {attempts}"],
+    }
+
+
+def evaluate_answer(state: AgentState):
+    prompt = f""" You are an evaluation agent. Provide feedback and evaluate if the answer accurately fits the question based on the rules.
+        
+                Question : {state['question']}
+
+                The answer : {state['answer']}
+            
+            Evaluation criteria:    
+            - Does it answer the question accurately?
+            - Does it answer address the question?
+            - Does it provide enough details to explain the essential concepts?
+            - Is it clear and easy to understand?
+            
+            
+            Set quality_ok to be true only if the answer meets these criteria.
+            If the answer doesn't meet it set it to false and write a descriptive feedback so that the answer may be fixed.
+            
+            Otherwise, explain  briefly why it's adequate."""
+
+    evaluation = evaluator.invoke(prompt)
+
+    return {
+        "quality_ok": evaluation.quality_ok,
+        "feedback": evaluation.feedback,
+        "logs": [f"Evaluation : {'Passed' if evaluation.quality_ok else 'Failed'}"],
+    }
