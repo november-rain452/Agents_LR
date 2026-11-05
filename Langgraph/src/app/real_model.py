@@ -83,3 +83,16 @@ def evaluate_answer(state: AgentState):
         "feedback": evaluation.feedback,
         "logs": [f"Evaluation : {'Passed' if evaluation.quality_ok else 'Failed'}"],
     }
+
+
+MAX_ATTEMPTS = 3
+
+
+def decide_next_step(state: AgentState):
+    if state["quality_ok"]:
+        return "finish"
+
+    if state["attempts"] >= MAX_ATTEMPTS:
+        return "finish"
+
+    return "retry"
