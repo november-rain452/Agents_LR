@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field
 
 load_dotenv()
 
-llm = ChatGoogleGenerativeAI(model="gemini-3.5-flash-lite")
+llm = ChatGoogleGenerativeAI(model="gemini-3.6-flash")
 
 
 class AgentState(TypedDict):
@@ -17,6 +17,7 @@ class AgentState(TypedDict):
     attempts: int
     feedback: str
     quality_ok: bool
+    status: str
     logs: Annotated[list[str], operator.add]
 
 
@@ -88,6 +89,14 @@ def evaluate_answer(state: AgentState):
 MAX_ATTEMPTS = 3
 
 
+def set_status(state: AgentState):
+    if state["quality_ok"]:
+        return {"status": "Passed"}
+
+    if state["attempts"] >= MAX_ATTEMPTS:
+        return {"status": "Max limit reached"}
+
+
 def decide_next_step(state: AgentState):
     if state["quality_ok"]:
         return "finish"
@@ -104,12 +113,14 @@ builder = StateGraph(AgentState)
 
 builder.add_node("gen_improve", generate_or_improve)
 builder.add_node("evaluate", evaluate_answer)
+builder.add_node("set_status", set_status)
 
 builder.add_edge(START, "gen_improve")
 builder.add_edge("gen_improve", "evaluate")
 builder.add_conditional_edges(
-    "evaluate", decide_next_step, {"finish": END, "retry": "gen_improve"}
+    "evaluate", decide_next_step, {"finish": "set_status", "retry": "gen_improve"}
 )
+builder.add_edge("set_status", END)
 
 graph = builder.compile()
 
@@ -120,6 +131,7 @@ result = graph.invoke(
         "attempts": 0,
         "feedback": "",
         "quality_ok": False,
+        "status": "",
         "logs": [],
     }
 )
