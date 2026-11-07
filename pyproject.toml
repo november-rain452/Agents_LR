@@ -1,0 +1,23 @@
+[project]
+name = "agents-lr"
+version = "0.1.0"
+description = "Add your description here"
+authors = [
+    { name = "Aditya Sinha", email = "ranjanaditya452@gmail.com" }
+]
+requires-python = ">=3.14"
+dependencies = [
+    "dotenv>=0.9.9",
+    "faiss-cpu>=1.15.1",
+    "langchain>=1.4.9",
+    "langchain-google-genai>=4.4.3",
+    "langchain-text-splitters>=1.1.3",
+    "langgraph>=1.2.20",
+]
+
+[project.scripts]
+agents-lr = "agents_lr:main"
+
+[build-system]
+requires = ["uv_build>=0.13.7,<0.14.0"]
+build-backend = "uv_build"
