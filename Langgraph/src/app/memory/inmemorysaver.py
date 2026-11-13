@@ -6,6 +6,7 @@ import operator
 from typing import Annotated
 from dotenv import load_dotenv
 from pydantic import BaseModel, Field
+from test_checkpoints import view_checkpoint_history
 
 load_dotenv()
 
@@ -33,9 +34,7 @@ def generate_improve_node(state: State):
     attempt = state["attempts"] + 1
 
     if attempt == 1:
-        prompt = (
-            f"""You are an answering agent. Answer the given question adequately."""
-        )
+        prompt = f"""You are an answering agent. Answer the given question adequately. Question : {state['question']}"""
     if attempt > 1:
         prompt = f"""Improve the answer if quality isnt okay. Quality okay : {state['quality_ok']}
          Question : {state['question']}.    
@@ -83,6 +82,8 @@ graph = builder.compile(checkpointer=memory)
 
 
 config = {"configurable": {"thread_id": "conv1"}}
+config_2 = {"configurable": {"thread_id": "conv2"}}
+
 ans = graph.invoke(
     {
         "question": "What is RAG in Gen AI?",
@@ -94,11 +95,23 @@ ans = graph.invoke(
     config=config,
 )
 
+ans2 = graph.invoke(
+    {
+        "question": "What is Fine Tuning in Gen AI?",
+        "answer": "",
+        "attempts": 0,
+        "quality_ok": False,
+        "logs": [],
+    },
+    config=config_2,
+)
+
 
 # print(ans)
 history = graph.get_state_history(config)
 state_snapshot = graph.get_state(config)
 
-print(state_snapshot.values)
-print(state_snapshot.next)
-print(state_snapshot.config)
+history2 = graph.get_state_history(config_2)
+
+view_checkpoint_history(history)
+view_checkpoint_history(history2)
