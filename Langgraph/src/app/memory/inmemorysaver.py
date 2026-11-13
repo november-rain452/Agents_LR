@@ -38,7 +38,7 @@ def generate_improve_node(state: State):
         )
     if attempt > 1:
         prompt = f"""Improve the answer if quality isnt okay. Quality okay : {state['quality_ok']}
-         Question : {state['question']}.
+         Question : {state['question']}.    
           Previous answer : {state["answer"]} """
 
     response = llm.invoke(prompt)
@@ -78,8 +78,11 @@ builder.add_edge(START, "gen")
 builder.add_edge("gen", "evaluate")
 builder.add_conditional_edges("evaluate", choose_step, {"finish": END, "retry": "gen"})
 
-graph = builder.compile()
+memory = InMemorySaver()
+graph = builder.compile(checkpointer=memory)
 
+
+config = {"configurable": {"thread_id": "conv1"}}
 ans = graph.invoke(
     {
         "question": "What is RAG in Gen AI?",
@@ -87,7 +90,15 @@ ans = graph.invoke(
         "attempts": 0,
         "quality_ok": False,
         "logs": [],
-    }
+    },
+    config=config,
 )
 
-print(ans)
+
+# print(ans)
+history = graph.get_state_history(config)
+state_snapshot = graph.get_state(config)
+
+print(state_snapshot.values)
+print(state_snapshot.next)
+print(state_snapshot.config)
