@@ -42,3 +42,14 @@ def approval_node(state: State):
 def send_email(state: State):
     print(f"Sending email to {state['recipient']} ")
     return {"status": "Email Sent", "logs": ["Email sent"]}
+
+
+def reject_mail(state: State):
+    print("Email Rejected")
+    return {"status": "Email Rejected", "logs": [f"Approval Gained: False"]}
+
+
+def routing_function(state: State):
+    if state["approved"]:
+        return "send"
+    return "rejected"
